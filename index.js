@@ -4,14 +4,16 @@ var userRoutes = require('./Route/users.route')
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 var adminRoutes = require('./Route/admin.route');
-var companyRoutes = require('./Route/company.route')
-var mongo_config = require('./')
+var companyRoutes = require('./Route/company.route');
+var parentRoute = require('./Route/parents.route');
 
 //app middleware sec
 app.use(bodyParser.json());
-app.use('/users',userRoutes)
-app.use('/admins',adminRoutes)
-app.use('/company',companyRoutes)
+app.use('/users',userRoutes);
+app.use('/admins',adminRoutes);
+app.use('/company',companyRoutes);
+app.use('/parent',parentRoute);
+
 
 //connect to mongodb
 mongoose.Promise = global.Promise

@@ -3,7 +3,7 @@ const router = express.Router();
 const Company = require('../model/company.model');
 
 
-router.post('/',(req,res)=>{
+router.post('/new',(req,res)=>{
     const newCompany = new Company({...req.body});
     newCompany.save()
     .then(record=>{
@@ -20,6 +20,8 @@ router.post('/',(req,res)=>{
     })
 })
 
+
+
 router.get('/',(req,res)=>{
     Company.find()
     .then(record=>{
@@ -35,4 +37,5 @@ router.get('/',(req,res)=>{
         })
     })
 })
-module.exports = Company;
+
+module.exports = router;

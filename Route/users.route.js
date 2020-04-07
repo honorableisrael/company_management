@@ -1,6 +1,9 @@
 var express = require('express');
 var router = express.Router()
 var dbUsers = require('../model/user.model');
+var bcrypt = require('bcryptjs')
+
+
 
 var paginatedModel = require('../middleware/pagination_middleware');
 
@@ -33,14 +36,19 @@ router.get('/',paginatedModel(Users),(req,res)=>{
 
 router.post('/user',(req,res)=>{
     const users = new dbUsers({...req.body,category:[{name:'',age:'',grade:'',_class:''}]})
-    console.log(users)
     users.save()
     .then(response=>{
-        res.send(201)
+        res.json({
+            message:"User created",
+            response
+        })
     })
     .catch(err=>{
         console.log(err)
-        res.json(err)
+        res.json({
+            message:"User creation failed",
+            error:err
+        })
     })
 })
 
@@ -53,10 +61,10 @@ router.post('/user',(req,res)=>{
         res1.category=[{ name,age,grade,_class } ]
         await res1.save()
         .then(res2=>{
-            console.log(res2)
             res.json({
                 message:"Update successful",
-                status:200
+                status:200,
+                doc:res2
             })
         })
         .catch(err=>{
@@ -74,6 +82,36 @@ router.post('/user',(req,res)=>{
     })  
     // console.log(doc)
 })
+router.put('/update_password/:id',(req,res)=>{
+    const id = req.params.id;
+    dbUsers.find({_id:id})
+    .then(doc=>{
+        console.log('found doc'+ doc)
+        doc.password = req.body.password
+        doc.save(err,(saveddoc)=>{
+            if (err){
+                res.json({
+                    message:"Error occured failed to save",
+                    error:err
+                })
+            }
+            res.json({
+                message:"Password save was successful",
+                doc:saveddoc
+            })
+        })
+        res.json({
+            message:"document was updated",
+            doc
+        })
+    })
+    .catch(error=>{
+        res.json({
+            message:"User not found",
+            error
+        })
+    })
+})
 
 //get all users
 router.get('/users',(req,res)=>{
@@ -86,5 +124,32 @@ router.get('/users',(req,res)=>{
         res.json(err)
     })
 })
+router.post('/login',(req,res)=>{
+    var {name,password} = req.body;
+    dbUsers.findOne({name})
+    .then((doc)=>{
+        doc.comparePassword(password,function(err,isMatch){
+            console.log(isMatch)
+            if (err) throw err
+            if(isMatch){
+                res.json({
+                    message:'loggedIn user',
+                    doc
+                })
+            }
+            else{
+                res.send(400,{
+                    message:"Auth failed password incorrect"
+                })
+            }
+        })
+    })
+    .catch(error=>{
+        res.json({
+            message:'logged in failed user not found',
+            error
+        })
+    })
+})
 
-module.exports = router
+module.exports = router;
