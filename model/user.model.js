@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var bcrypt = require('bcryptjs');
 var saltIteration = 10;
-
+var jwt = require('jsonwebtoken');
 
 
 var studentSchema = new Schema({
@@ -25,8 +25,8 @@ var userSchema = new Schema({
     },
     gender:{
         type:String,
-        lowercase:true,
-        enum:["male","female"],
+        capitalize:true,
+        enum:["Fale","Female"],
     },
     company:[{ref:'company',type:Schema.Types.ObjectId}],
     ocupation:{
@@ -60,6 +60,28 @@ var userSchema = new Schema({
         bcrypt.compare(candidatePassword.toString(),this.password,function(error,ismatch){
             if(error) throw error
             return cb(null,ismatch)
+        })
+    }
+    //methods are applied 
+    userSchema.methods.generateToken = function(cb){
+        var user = this;
+        var secretkey = 'specailsecretword';
+        const generatedToken = jwt.sign(user._id.toString(16),secretkey);
+        user.token = generatedToken;
+        user.save((err,userWithUpdatedToken)=>{
+            if (err) return cb(err,null);
+            cb(null,userWithUpdatedToken);
+        })
+    }
+    userSchema.statics.findByToken = function(token,cb){
+        var user = this;
+        console.log(user)
+        user.findOne({token})
+        .then(doc=>{
+            cb(null,doc)
+        })
+        .catch(err=>{
+            cb(err,null)
         })
     }
 

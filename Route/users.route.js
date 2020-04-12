@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router()
 var dbUsers = require('../model/user.model');
 var bcrypt = require('bcryptjs')
-
+var userAuth = require('../middleware/userauth');
 
 
 var paginatedModel = require('../middleware/pagination_middleware');
@@ -35,7 +35,7 @@ router.get('/',paginatedModel(Users),(req,res)=>{
 })
 
 router.post('/user',(req,res)=>{
-    const users = new dbUsers({...req.body,category:[{name:'',age:'',grade:'',_class:''}]})
+    const users = new dbUsers({...req.body,...req.body.category})
     users.save()
     .then(response=>{
         res.json({
@@ -55,10 +55,10 @@ router.post('/user',(req,res)=>{
 //a route to update the user category schema 
  router.put('/add_category/:username',(req,res) =>{
     let user_name = req.params.username
-   let doc = dbUsers.findOne({name:user_name})
+    let doc = dbUsers.findOne({name:user_name})
     .then(async (res1)=>{
         const { name,age,grade,_class } = req.body
-        res1.category=[{ name,age,grade,_class } ]
+        res1.category=[{ name,age,grade,_class },...res1.category ]
         await res1.save()
         .then(res2=>{
             res.json({
@@ -74,6 +74,8 @@ router.post('/user',(req,res)=>{
             })
         })
     })
+
+
     .catch(err2=>{
         res.status(404).json({
             message:"failed to update, user not found",
@@ -114,7 +116,7 @@ router.put('/update_password/:id',(req,res)=>{
 })
 
 //get all users
-router.get('/users',(req,res)=>{
+router.get('/user',userAuth(),(req,res)=>{
     dbUsers.find()
     .then(response=>{
         res.json(response)
@@ -124,17 +126,36 @@ router.get('/users',(req,res)=>{
         res.json(err)
     })
 })
+
+router.get('/profile',(req,res)=>{
+    const token = req.headers.token;
+    token ? 
+    dbUsers.findByToken(token,(err,user)=>{
+        if (err) throw err;
+        res.json(200,{
+            user
+        })
+    })
+    :
+    res.send(400,{
+        message:"Authentication required"
+    })
+})
 router.post('/login',(req,res)=>{
     var {name,password} = req.body;
     dbUsers.findOne({name})
     .then((doc)=>{
         doc.comparePassword(password,function(err,isMatch){
-            console.log(isMatch)
             if (err) throw err
             if(isMatch){
-                res.json({
-                    message:'loggedIn user',
-                    doc
+                doc.generateToken((error,user)=>{
+                    console.log(error)
+                    if (error) return res.send(400,error);
+                    res.set('token',user.token)
+                    res.send(200,{
+                        message:"User loggedIn",
+                        id:user.id,
+                    })
                 })
             }
             else{
